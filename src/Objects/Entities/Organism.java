@@ -1,7 +1,9 @@
 package Objects.Entities;
 
+import AI.Brain;
 import AI.Move;
-import GameManager.Population;
+import AI.Population;
+import Physics.Physics;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -14,19 +16,22 @@ public class Organism extends Entity {
     private final static float SPEED = 1.0f;
 
     private Rectangle shape;
-    private Move[] moves;
+    private Brain brain;
     private int moveCounter;
     private boolean alive = true;
+    private boolean goalReached = false;
+
+    private double fitnessScore;
 
     private int startx, starty;
 
-    public Organism(int x, int y, Move[] moves){
+    public Organism(int x, int y, Brain brain){
         super(x, y);
 
         this.startx = x;
         this.starty = y;
 
-        this.moves = moves;
+        this.brain = brain;
 
         initialize();
     }
@@ -38,7 +43,7 @@ public class Organism extends Entity {
 
         initialize();
 
-        randomizeMoves(numMoves);
+        this.brain = new Brain(numMoves);
 
     }
 
@@ -51,6 +56,8 @@ public class Organism extends Entity {
         width = WIDTH;
         height = HEIGHT;
 
+        fitnessScore = 0;
+
         shape = new Rectangle(width, height);
         shape.setFill(Color.BLUE);
         shape.setOpacity(0.5);
@@ -60,20 +67,17 @@ public class Organism extends Entity {
         moveCounter = 0;
     }
 
-    private void randomizeMoves(int numMoves){
-        moves = new Move[numMoves];
-        for(int i=0; i<numMoves; i++){
-            moves[i] = new Move();
-        }
-    }
-
     @Override
     public void update(){
 
         if(!alive) return;
 
-        if(xpos == Population.GOALX && ypos == Population.GOALY){
+        if(Physics.getDistance(xpos, ypos, Population.GOALX, Population.GOALY) < width){
+            goalReached = true;
+            shape.setFill(Color.ORANGE);
+            xvel = yvel = 0;
             alive = false;
+            return;
         }
 
         // Slow
@@ -92,13 +96,13 @@ public class Organism extends Entity {
         }
 
         // Move
-        if(moveCounter >= moves.length){
+        if(moveCounter >= brain.getNumMoves()){
             alive = false;
             xvel = yvel = 0;
             return;
         }
 
-        Move cMove = moves[moveCounter];
+        Move cMove = brain.getMove(moveCounter);
 
         xvel += cMove.getX() * SPEED;
         yvel += cMove.getY() * SPEED;
@@ -137,63 +141,37 @@ public class Organism extends Entity {
         xpos = startx;
         ypos = starty;
         moveCounter = 0;
+        goalReached = false;
         this.alive = true;
     }
 
+
+
     // Create an offspring from a single parent
-    public Organism generateOffspring(double mutationFactor){
+    public Organism generateOffspring(int brainGrowth, double mutationFactor){
 
-        // Create a new move list
-        Move[] offspringMoves = new Move[moves.length];
-        double rand;
-        for(int i=0; i<moves.length; i++){
-            rand = Math.random();
-            if(rand < mutationFactor){
-                offspringMoves[i] = new Move();
-            }
-            else{
-                offspringMoves[i] = moves[i].copy();
-            }
-        }
+        Brain offspringBrain = brain.generateOffspringBrain(brainGrowth, mutationFactor);
 
-        Organism offspring = new Organism(startx, starty, offspringMoves);
+        Organism offspring = new Organism(startx, starty, offspringBrain);
 
         return offspring;
     }
 
-    // Generate an offspring from two parents with a potential to extend the number of moves
-    public Organism generateOffspring(Organism mom, double mutationFactor){
-        // Create a new move list
-        Move[] offspringMoves = new Move[moves.length];
-        double rand;
-        int i;
-        for(i=0; i<moves.length; i++){
-            rand = Math.random();
-            if(rand < mutationFactor){
-                offspringMoves[i] = new Move();
-            }
-            else if(rand < (1.0 - rand) /2){
-                offspringMoves[i] = mom.getMove(i).copy();
-            }
-            else{
-                offspringMoves[i] = moves[i].copy();
-            }
-        }
-
-        Organism offspring = new Organism(startx, starty, offspringMoves);
-
-        return offspring;
-
+    public void growBrain(int brainGrowth){
+       brain.grow(brainGrowth);
     }
 
-    public Move getMove(int i){
-        if(i < moves.length) {
-            return moves[i];
-        } else {
-            System.err.println("Cant get this move.");
-            return null;
+    public void calcFitness(){
+
+        if(goalReached){
+            fitnessScore = 2000.0 / (moveCounter * moveCounter);
+        }
+        else {
+            float dist = Physics.getDistance(xpos, ypos, Population.GOALX, Population.GOALY);
+            fitnessScore = 1.0 / (dist * dist);
         }
     }
-    public int getTurnsTaken(){ return moveCounter; }
+
+    public double getFitness(){ return fitnessScore; }
 
 }

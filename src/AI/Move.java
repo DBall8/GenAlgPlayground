@@ -1,10 +1,10 @@
 package AI;
 
 public class Move {
-    private int x;
-    private int y;
+    private short x;
+    private short y;
 
-    public Move(int x, int y){
+    public Move(short x, short y){
         this.x = x;
         this.y = y;
     }

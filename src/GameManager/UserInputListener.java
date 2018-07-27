@@ -92,12 +92,21 @@ public class UserInputListener {
         });
     }
 
-    private void mouseMoved(MouseEvent me){
+    public UserInputListener(boolean isGameManager, Scene scene) {
+        scene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                keyDown(event);
+            }
+        });
+    }
+
+    protected void mouseMoved(MouseEvent me){
         mousex = (float)me.getSceneX();
         mousey = (float)me.getSceneY();
     }
 
-    private void keyDown(KeyEvent ke){
+    protected void keyDown(KeyEvent ke){
         switch(ke.getCode()){
             case W:
                 if(!up) up = true;
@@ -116,7 +125,7 @@ public class UserInputListener {
         }
     }
 
-    private void keyUp(KeyEvent ke){
+    protected void keyUp(KeyEvent ke){
         switch(ke.getCode()){
             case W:
                 up = false;

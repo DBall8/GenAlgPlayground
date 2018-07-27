@@ -1,18 +1,24 @@
 package GameManager;
 
+import AI.Population;
 import Global.Settings;
 import Objects.Entities.Entity;
-import Objects.Entities.Organism;
 import Objects.Entities.Player;
 import Objects.ICollidable;
 import Objects.Obstacle;
+import javafx.event.EventHandler;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static javafx.scene.input.KeyCode.SPACE;
+
 public class GameManager extends Pane {
+
+    private final static double TRAINSPEED = 0.1;
 
     private Scene scene;
     private List<Entity> entities = new ArrayList<>();
@@ -20,6 +26,7 @@ public class GameManager extends Pane {
     private int width, height;
     GameTime time;
 
+    Overlay overlay;
     Population pop;
 
     public GameManager(){
@@ -27,7 +34,7 @@ public class GameManager extends Pane {
         this.width = Settings.getWindowWidth();
         this.height = Settings.getWindowHeight();
 
-        time = new GameTime(this);
+        time = new GameTime(this, TRAINSPEED);
     }
 
     public void start(Scene scene){
@@ -40,8 +47,33 @@ public class GameManager extends Pane {
         pop = new Population(entities);
         getChildren().add(pop);
 
-        addObstacle(375, 200, 50, 400);
-        addObstacle(200, 375, 400, 50);
+        drawMaze();
+
+        overlay = new Overlay(pop);
+        getChildren().add(overlay);
+
+        scene.addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent event) {
+                switch(event.getCode()){
+                    case SPACE:
+                        time.togglePlay();
+                        break;
+                    case B:
+                        pop.togglePaused();
+                        break;
+                    case COMMA:
+                        pop.show(Population.PopShow.ALL);
+                        break;
+                    case PERIOD:
+                        pop.show(Population.PopShow.STRONGEST);
+                        break;
+                    case SLASH:
+                        pop.show(Population.PopShow.NONE);
+                        break;
+                }
+            }
+        });
 
         time.play();
     }
@@ -58,6 +90,9 @@ public class GameManager extends Pane {
         }
 
         pop.update();
+        if(overlay != null){
+            overlay.update();
+        }
     }
 
     private float checkCollisions(float timeLeft){
@@ -93,6 +128,12 @@ public class GameManager extends Pane {
 
             timeLeft -= firstCollisionTime;
 
+            if(pop.isFinished()){
+                time.pause();
+                time = new GameTime(this);
+                time.play();
+            }
+
         }while(timeLeft > 0.01f);
     }
 
@@ -105,6 +146,20 @@ public class GameManager extends Pane {
         Obstacle o = new Obstacle(xpos, ypos, width, height);
         getChildren().add(o);
         obstacles.add(o);
+    }
+
+
+
+    private void drawCross(){
+        addObstacle(375, 200, 50, 400);
+        addObstacle(200, 375, 400, 50);
+    }
+
+    private void drawMaze(){
+        addObstacle(200, 200, 50, 400);
+        addObstacle(400, 0, 50, 300);
+        addObstacle(400, 500, 50, 300);
+        addObstacle(600, 200, 50, 400);
     }
 
 }
